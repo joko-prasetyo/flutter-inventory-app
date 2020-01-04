@@ -1,4 +1,4 @@
-name: tokosepatuapp
+name: Sepatuku
 description: A new Flutter project.
 
 # The following defines the version and build number for your application.
@@ -15,9 +15,12 @@ version: 1.0.0+1
 
 environment:
   sdk: ">=2.1.0 <3.0.0"
-
+module:
+  androidX: true
 dependencies:
-  http: ^0.12.0+2
+  image_picker: ^0.6.2+3
+  cached_network_image: ^2.0.0
+  http: ^0.12.0+3
   json_api: ^2.1.0
   auto_size_text: ^2.1.0
   flutter:
@@ -42,8 +45,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/images/
-  # To add assets to your application, add an assets section, like this:
+    - assets/images/ 
+  # To add assets to your application, add an as sets section, like this:
   # assets:
   #  - images/a_dot_burr.jpeg
   #  - images/a_dot_ham.jpeg

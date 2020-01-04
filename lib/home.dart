@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'components/stock.dart';
 import 'components/transaction_page.dart';
+import 'dart:io';
 
 class Home extends StatefulWidget {
   @override
@@ -11,57 +12,91 @@ class Home extends StatefulWidget {
 }
 
 class AddTransaction extends StatefulWidget {
-  final Function _renderScreen;
-  AddTransaction(this._renderScreen);
+  final Function renderScreen;
+  final items;
+  final customers;
+  final stocks;
+  AddTransaction(this.renderScreen, this.items, this.customers, this.stocks);
   @override
-  _AddTransactionState createState() => _AddTransactionState(_renderScreen);
+  _AddTransactionState createState() =>
+      _AddTransactionState(renderScreen, items, customers, stocks);
 }
 
 class _AddTransactionState extends State<AddTransaction> {
   Map<Object, String> _body = {};
-  final Function _renderScreen;
-  _AddTransactionState(this._renderScreen);
-  String dropdownValue = 'One';
-  String _totalHarga = "-";
+  String dropDownItem;
+  String dropDownCustomer;
+  String dropDownSize;
+  final Function renderScreen;
+  final List items;
+  final List customers;
+  List stocksTemp;
+  List stocks = [];
+  String itemId;
+
+  _AddTransactionState(
+      this.renderScreen, this.items, this.customers, this.stocksTemp);
   _addTransactionHandler() async {
-    String url = 'http://10.0.2.2:8000/api/sale';
-    Map<String, String> bodies = {
-      "nomor_nota": "${_body['nota']}",
-      "customer_id": "${_body['customer_id']}",
-      "item_id": "${_body['barang_id']}",
-      "ukuran": "${_body['ukuran']}",
-      "jumlah_barang": "${_body['jumlah']}",
-      "total_harga": "${_totalHarga}"
-    };
-    var response = await post(url, body: bodies);
-    // print(response.body);
-    Navigator.of(context).pop();
-    _renderScreen;
-    // return showDialog<void>(
-    //   context: context,
-    //   barrierDismissible: false,
-    //   builder: (BuildContext context) {
-    //     return AlertDialog(
-    //       title: Text('Informasi'),
-    //       content: SingleChildScrollView(
-    //         child: ListBody(
-    //           children: <Widget>[Text("Transaksi telah di tambah")],
-    //         ),
-    //       ),
-    //       actions: <Widget>[
-    //         FlatButton(
-    //           child: Text(
-    //             'Ok',
-    //             style: TextStyle(color: Colors.black, fontSize: 15),
-    //           ),
-    //           onPressed: () {
-    //             // _renderScreen();
-    //           },
-    //         )
-    //       ],
-    //     );
-    //   },
-    // );
+    String url = 'https://store-inventory-apis.herokuapp.com/sales';
+    var body = jsonEncode({
+      "note_number": "${_body['nota'].toString()}",
+      "customer_id": "${dropDownCustomer.toString()}",
+      "item_id": "${itemId.toString()}",
+      "item_size": "${dropDownSize.toString()}",
+      "item_quantity": "${_body['jumlah'].toString()}"
+    });
+    try {
+      var response = await post(url, body: body, headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      });
+      if (response.statusCode == 201) {
+        return showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Informasi'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[Text("Transaksi telah di tambah")],
+                ),
+              ),
+              actions: <Widget>[
+                FlatButton(
+                  child: Text(
+                    'Ok',
+                    style: TextStyle(color: Colors.black, fontSize: 15),
+                  ),
+                  onPressed: () {
+                    renderScreen();
+                    Navigator.of(context).pop();
+                  },
+                )
+              ],
+            );
+          },
+        );
+      }
+    } on Exception catch (_) {
+      Navigator.of(context).pop();
+      renderScreen();
+    }
+  }
+
+  void _stocksArrange(String name) {
+    stocks = [];
+    for (int i = 0; i < items.length; i++) {
+      for (int j = 0; j < stocksTemp.length; j++) {
+        if (items[i]["brand_id"] != null &&
+            items[i]["brand_id"]["name"] == name) {
+          if (items[i]["_id"] == stocksTemp[j]["item_id"]) {
+            stocks.add(stocksTemp[j]);
+          }
+        }
+      }
+    }
+    dropDownSize = stocks[0]["size"].toString();
   }
 
   static GlobalKey<FormState> _formKey = new GlobalKey<FormState>();
@@ -82,35 +117,12 @@ class _AddTransactionState extends State<AddTransaction> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
                 ListTile(
-                  leading: Icon(Icons.border_color),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Form should not be empty";
-                      _body["nama"] = val;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Nama Barang",
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.people),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Form should not be empty";
-                      _body["customer_id"] = val;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Customer Id",
-                    ),
-                  ),
-                ),
-                ListTile(
                   leading: Icon(Icons.code),
                   title: TextFormField(
                     validator: (val) {
                       if (val.isEmpty) return "Form should not be empty";
                       _body["nota"] = val;
+                      return null;
                     },
                     decoration: InputDecoration(
                       hintText: "Nomor Nota",
@@ -118,76 +130,77 @@ class _AddTransactionState extends State<AddTransaction> {
                   ),
                 ),
                 ListTile(
-                  leading: Icon(Icons.format_list_numbered),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Form should not be empty";
-                      _body["ukuran"] = val;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Ukuran",
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.label),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Form should not be empty";
-                      _body["barang_id"] = val;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Barang id",
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.code),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Form should not be empty";
-                      _body["kode_barang"] = val;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Kode Barang",
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.code),
-                  title: TextField(
-                    onChanged: (val) {
-                      _body["harga"] = val;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Harga",
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.add_shopping_cart),
-                  title: TextField(
-                    onChanged: (String val) {
-                      _body["jumlah"] = val;
+                  leading: Icon(Icons.local_mall),
+                  title: DropdownButton(
+                    isExpanded: true,
+                    hint: Text('Barang'),
+                    value: dropDownItem,
+                    onChanged: (newValue) {
                       setState(() {
-                        val == ""
-                            ? _totalHarga = "-"
-                            : _totalHarga =
-                                (int.parse(val) * int.parse(_body["harga"]))
-                                    .toString();
+                        newValue = newValue.split(" ");
+                        dropDownItem = newValue[0] + " " + newValue[1];
+                        itemId = newValue[0];
+                        _stocksArrange(newValue[1]);
                       });
+                    },
+                    items: items.map((item) {
+                      return DropdownMenuItem(
+                        child: new Text(item["brand_id"]["name"] +
+                            ' (${item["itemCode"]})'),
+                        value: item["_id"] + " ${item["brand_id"]["name"]}",
+                      );
+                    }).toList(),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.face),
+                  title: DropdownButton(
+                    isExpanded: true,
+                    hint: Text('Customer'),
+                    value: dropDownCustomer,
+                    onChanged: (newValue) {
+                      setState(() {
+                        dropDownCustomer = newValue;
+                      });
+                    },
+                    items: customers.map((customer) {
+                      return DropdownMenuItem(
+                        child: new Text(customer["name"]),
+                        value: customer["_id"],
+                      );
+                    }).toList(),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.format_list_numbered),
+                  title: DropdownButton(
+                    isExpanded: true,
+                    hint: Text('Ukuran'),
+                    value: dropDownSize,
+                    onChanged: (newValue) {
+                      setState(() {
+                        dropDownSize = newValue;
+                      });
+                    },
+                    items: stocks.map((stock) {
+                      return DropdownMenuItem(
+                        child: new Text(stock["size"].toString()),
+                        value: stock["size"].toString(),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.plus_one),
+                  title: TextFormField(
+                    validator: (val) {
+                      if (val.isEmpty) return "Form should not be empty";
+                      _body["jumlah"] = val;
+                      return null;
                     },
                     decoration: InputDecoration(
                       hintText: "Jumlah",
                     ),
-                  ),
-                ),
-                ListTile(
-                  title: Row(
-                    children: [
-                      Text("Total Harga: Rp. $_totalHarga"),
-                    ],
-                    mainAxisAlignment: MainAxisAlignment.end,
                   ),
                 ),
                 Divider(
@@ -221,71 +234,89 @@ class _AddTransactionState extends State<AddTransaction> {
 }
 
 class AddBarang extends StatefulWidget {
-  List brands;
-  List items;
-  AddBarang(this.brands, this.items);
+  final List brands;
+  final List items;
+  final List suppliers;
+  final Function renderScreen;
+  AddBarang(this.brands, this.items, this.suppliers, this.renderScreen);
   @override
-  _AddBarangState createState() => _AddBarangState(brands, items);
+  _AddBarangState createState() =>
+      _AddBarangState(brands, items, suppliers, renderScreen);
 }
 
 class _AddBarangState extends State<AddBarang> {
-  String dropDownValue = 'Nike';
-  String _dropDownValue = '1';
+  String dropDownBrand;
+  String dropDownSupplier;
   Map<Object, String> _body = {};
   List brands;
   List items;
-  _AddBarangState(brands, items) {
+  List suppliers;
+  Function renderScreen;
+  _AddBarangState(brands, items, suppliers, renderScreen) {
     this.brands = brands;
     this.items = items;
+    this.suppliers = suppliers;
+    this.renderScreen = renderScreen;
   }
   final GlobalKey<FormState> _formKey = new GlobalKey<FormState>();
-  String _formValidator(String val) {
-    if (val.isEmpty) {
-      return "Field should not be empty";
-    }
-    return null;
-  }
-
   void _addBarang(context) async {
-    String url = 'http://10.0.2.2:8000/api/item';
-    Map<String, String> bodies = {
-      "kode_barang": "${_body['kode_barang']}",
-      "brand_id": "${_body['brand_id']}",
-      "supplier_id": "${_body['supplier_id']}",
-      "harga": "${_body['harga']}"
+    String url = 'https://store-inventory-apis.herokuapp.com/items';
+
+    var headers = {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
     };
-    var response = await post(url, body: bodies);
-    String url1 = 'http://10.0.2.2:8000/api/stock';
-    var item_id = jsonDecode(response.body);
-    Map<String, String> bodies1 = {
-      "item_id": "${item_id['data']['id'].toString()}",
-      "ukuran": "${_body['ukuran'].toString()}",
-      "jumlah": "${_body['jumlah'].toString()}"
-    };
-    var response1 = await post(url1, body: bodies1);
-    if (response.statusCode == 201 && response1.statusCode == 201) {
-      return showDialog<void>(
-        context: context,
-        barrierDismissible: false, // user must tap button!
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Informasi'),
-            content: SingleChildScrollView(
-              child: ListBody(
-                children: <Widget>[Text('Barang Berhasil di Tambah')],
+
+    var body = jsonEncode({
+      "itemCode": "${_body['kode_barang']}",
+      "brand_id": "${dropDownBrand.toString()}",
+      "supplier_id": "${dropDownSupplier.toString()}",
+      "price": "${_body['harga']}"
+    });
+
+    try {
+      var response = await post(url, body: body, headers: headers);
+
+      url = 'https://store-inventory-apis.herokuapp.com/stocks';
+
+      var itemId = jsonDecode(response.body);
+
+      body = jsonEncode({
+        "item_id": "${itemId['_id'].toString()}",
+        "size": "${_body['ukuran'].toString()}",
+        "quantity": "${_body['jumlah'].toString()}"
+      });
+
+      var response1 = await post(url, body: body, headers: headers);
+
+      if (response.statusCode == 201 && response1.statusCode == 201) {
+        return showDialog<void>(
+          context: context,
+          barrierDismissible: false, // user must tap button!
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Informasi'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[Text('Barang Berhasil di Tambah')],
+                ),
               ),
-            ),
-            actions: <Widget>[
-              FlatButton(
-                child: Text('Ok'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
+              actions: <Widget>[
+                FlatButton(
+                  child: Text('Ok'),
+                  onPressed: () {
+                    renderScreen();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } on Exception catch (_) {
+      Navigator.of(context).pop();
+      renderScreen();
     }
   }
 
@@ -306,15 +337,22 @@ class _AddBarangState extends State<AddBarang> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
                 ListTile(
-                  leading: Icon(Icons.label),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Field should not be empty";
-                      _body["supplier_id"] = val.toString();
+                  leading: Icon(Icons.face),
+                  title: DropdownButton(
+                    isExpanded: true,
+                    hint: Text('Pilih Supplier'),
+                    value: dropDownSupplier,
+                    onChanged: (newValue) {
+                      setState(() {
+                        dropDownSupplier = newValue;
+                      });
                     },
-                    decoration: InputDecoration(
-                      hintText: "Supplier id",
-                    ),
+                    items: suppliers.map((supplier) {
+                      return DropdownMenuItem(
+                        child: new Text(supplier["name"]),
+                        value: supplier["_id"],
+                      );
+                    }).toList(),
                   ),
                 ),
                 ListTile(
@@ -322,51 +360,27 @@ class _AddBarangState extends State<AddBarang> {
                   title: DropdownButton(
                     isExpanded: true,
                     hint: Text('Pilih Merek'),
-                    value: dropDownValue,
+                    value: dropDownBrand,
                     onChanged: (newValue) {
                       setState(() {
-                        dropDownValue = newValue;
-                        for (int i = 0; i < brands.length; i++) {
-                          if (brands[i]["nama"] == newValue) {
-                            _body["brand_id"] = brands[i]["id"].toString();
-                          }
-                        }
+                        dropDownBrand = newValue;
                       });
                     },
-                    items: brands.map((item) {
+                    items: brands.map((brand) {
                       return DropdownMenuItem(
-                        child: new Text(item["nama"]),
-                        value: item["nama"],
+                        child: new Text(brand["name"]),
+                        value: brand["_id"],
                       );
                     }).toList(),
                   ),
                 ),
                 ListTile(
-                  leading: Icon(Icons.branding_watermark),
-                  title: DropdownButton(
-                    isExpanded: true,
-                    hint: Text('Pilih Item id'),
-                    value: _dropDownValue,
-                    onChanged: (newValue) {
-                      setState(() {
-                        _dropDownValue = newValue.toString();
-                        _body["item_id"] = newValue.toString();
-                      });
-                    },
-                    items: items.map((item) {
-                      return DropdownMenuItem(
-                        child: new Text(item["id"].toString()),
-                        value: item["id"].toString(),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.label),
+                  leading: Icon(Icons.format_size),
                   title: TextFormField(
                     validator: (val) {
                       if (val.isEmpty) return "Field should not be empty";
                       _body["ukuran"] = val.toString();
+                      return null;
                     },
                     decoration: InputDecoration(
                       hintText: "Ukuran",
@@ -374,11 +388,12 @@ class _AddBarangState extends State<AddBarang> {
                   ),
                 ),
                 ListTile(
-                  leading: Icon(Icons.label),
+                  leading: Icon(Icons.plus_one),
                   title: TextFormField(
                     validator: (val) {
                       if (val.isEmpty) return "Field should not be empty";
                       _body["jumlah"] = val.toString();
+                      return null;
                     },
                     decoration: InputDecoration(
                       hintText: "Jumlah",
@@ -386,11 +401,12 @@ class _AddBarangState extends State<AddBarang> {
                   ),
                 ),
                 ListTile(
-                  leading: Icon(Icons.label),
+                  leading: Icon(Icons.monetization_on),
                   title: TextFormField(
                     validator: (val) {
                       if (val.isEmpty) return "Field should not be empty";
                       _body["harga"] = val.toString();
+                      return null;
                     },
                     decoration: InputDecoration(
                       hintText: "Harga",
@@ -403,6 +419,7 @@ class _AddBarangState extends State<AddBarang> {
                     validator: (val) {
                       if (val.isEmpty) return "Field should not be empty";
                       _body["kode_barang"] = val.toString();
+                      return null;
                     },
                     decoration: InputDecoration(
                       hintText: "Kode Barang",
@@ -439,39 +456,71 @@ class _AddBarangState extends State<AddBarang> {
 class AddCustomer extends StatelessWidget {
   Map<Object, String> _body = {};
   final formKey1 = new GlobalKey<FormState>();
+  final Function renderScreen;
+  AddCustomer(this.renderScreen);
   void _addCustomer(context) async {
-    String url = 'http://10.0.2.2:8000/api/customer';
-    Map<String, String> bodies = {
-      "nama": "${_body['nama']}",
-      "nomor_telepon": "${_body['nomor_telepon']}",
-      "alamat": "${_body['alamat']}",
-      "total_kunjungan": "1"
-    };
-    var response = await post(url, body: bodies);
-
-    if (response.statusCode == 201) {
-      return showDialog<void>(
-        context: context,
-        barrierDismissible: false, // user must tap button!
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Informasi'),
-            content: SingleChildScrollView(
-              child: ListBody(
-                children: <Widget>[Text('Pelanggan Berhasil di Tambah')],
+    String url = 'https://store-inventory-apis.herokuapp.com/customers/';
+    var msg = jsonEncode({
+      "name": _body["nama"].toString(),
+      "phone_number": _body["nomor_telepon"].toString(),
+      "address": _body["alamat"].toString()
+    });
+    try {
+      var response = await post(url, body: msg, headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      });
+      if (response.statusCode == 201) {
+        return showDialog<void>(
+          context: context,
+          barrierDismissible: false, // user must tap button!
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Informasi'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[Text('Pelanggan Berhasil di Tambah')],
+                ),
               ),
-            ),
-            actions: <Widget>[
-              FlatButton(
-                child: Text('Ok'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
+              actions: <Widget>[
+                FlatButton(
+                  child: Text('Ok'),
+                  onPressed: () {
+                    renderScreen();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        return showDialog<void>(
+          context: context,
+          barrierDismissible: false, // user must tap button!
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Informasi'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[Text('Gagal menambah pelanggan')],
+                ),
               ),
-            ],
-          );
-        },
-      );
+              actions: <Widget>[
+                FlatButton(
+                  child: Text('Ok'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } on Exception catch (_) {
+      Navigator.of(context).pop();
+      renderScreen();
     }
   }
 
@@ -501,6 +550,7 @@ class AddCustomer extends StatelessWidget {
                         validator: (val) {
                           if (val.isEmpty) return "Field should not be empty";
                           _body["nama"] = val;
+                          return null;
                         },
                         decoration: InputDecoration(
                           hintText: "Nama Pelanggan",
@@ -513,6 +563,7 @@ class AddCustomer extends StatelessWidget {
                         validator: (val) {
                           if (val.isEmpty) return "Field should not be empty";
                           _body["nomor_telepon"] = val;
+                          return null;
                         },
                         decoration: InputDecoration(
                           hintText: "Nomor Telp",
@@ -525,6 +576,7 @@ class AddCustomer extends StatelessWidget {
                         validator: (val) {
                           if (val.isEmpty) return "Field should not be empty";
                           _body["alamat"] = val;
+                          return null;
                         },
                         decoration: InputDecoration(
                           hintText: "Alamat",
@@ -543,9 +595,9 @@ class AddCustomer extends StatelessWidget {
                       children: <Widget>[
                         Expanded(
                           child: RaisedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (formKey1.currentState.validate()) {
-                                // _addCustomer(context);
+                                _addCustomer(context);
                               }
                             },
                             child: Text(
@@ -572,38 +624,72 @@ class AddCustomer extends StatelessWidget {
 class AddBrand extends StatelessWidget {
   Map<Object, String> _body = {};
   final GlobalKey<FormState> _formKey = new GlobalKey<FormState>();
-
+  final Function renderScreen;
+  AddBrand(this.renderScreen);
   void _addBrand(context) async {
-    String url = 'http://10.0.2.2:8000/api/brand';
-    Map<String, String> bodies = {
-      "nama": "${_body['nama']}",
-      "asal_negara": "${_body['asal_negara']}",
-    };
-    var response = await post(url, body: bodies);
+    String url = 'https://store-inventory-apis.herokuapp.com/brands';
+    var body = jsonEncode({
+      "name": "${_body['nama']}",
+      "origin": "${_body['asal_negara']}",
+    });
 
-    if (response.statusCode == 201) {
-      return showDialog<void>(
-        context: context,
-        barrierDismissible: false, // user must tap button!
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Informasi'),
-            content: SingleChildScrollView(
-              child: ListBody(
-                children: <Widget>[Text('Brand Berhasil di Tambah')],
+    try {
+      var response = await post(url, body: body, headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      });
+
+      if (response.statusCode == 201) {
+        return showDialog<void>(
+          context: context,
+          barrierDismissible: false, // user must tap button!
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Informasi'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[Text('Brand Berhasil di Tambah')],
+                ),
               ),
-            ),
-            actions: <Widget>[
-              FlatButton(
-                child: Text('Ok'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
+              actions: <Widget>[
+                FlatButton(
+                  child: Text('Ok'),
+                  onPressed: () {
+                    renderScreen();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        return showDialog<void>(
+          context: context,
+          barrierDismissible: false, // user must tap button!
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Informasi'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[Text('Gagal menambah brand')],
+                ),
               ),
-            ],
-          );
-        },
-      );
+              actions: <Widget>[
+                FlatButton(
+                  child: Text('Ok'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } on Exception catch (_) {
+      Navigator.of(context).pop();
+      renderScreen();
     }
   }
 
@@ -632,6 +718,7 @@ class AddBrand extends StatelessWidget {
                         validator: (val) {
                           if (val.isEmpty) return "Field should not be empty";
                           _body["nama"] = val;
+                          return null;
                         },
                         decoration: InputDecoration(
                           hintText: "Nama Merek",
@@ -639,11 +726,12 @@ class AddBrand extends StatelessWidget {
                       ),
                     ),
                     ListTile(
-                      leading: Icon(Icons.label),
+                      leading: Icon(Icons.location_city),
                       title: TextFormField(
                         validator: (val) {
                           if (val.isEmpty) return "Field should not be empty";
                           _body["asal_negara"] = val;
+                          return null;
                         },
                         decoration: InputDecoration(
                           hintText: "Asal Negara",
@@ -689,75 +777,100 @@ class AddBrand extends StatelessWidget {
 }
 
 class _HomeState extends State<Home> {
-  List data;
-  List brands;
-  List items;
-
+  dynamic data;
+  dynamic brands;
+  dynamic items;
+  dynamic customers;
+  dynamic stocks;
+  dynamic suppliers;
+  bool connection = true;
   void _fetchData() async {
-    String url = 'http://10.0.2.2:8000/api/sale';
-    var response = await http.get(url);
-    String url1 = 'http://10.0.2.2:8000/api/customer';
-    var response1 = await http.get(url1);
-    String url2 = 'http://10.0.2.2:8000/api/item';
-    var response2 = await http.get(url2);
-    String url3 = 'http://10.0.2.2:8000/api/brand';
-    var response3 = await http.get(url3);
-    String url4 = 'http://10.0.2.2:8000/api/stock';
-    var response4 = await http.get(url4);
-    data = jsonDecode(response.body)["data"];
-    List customers = jsonDecode(response1.body)["data"];
-    items = jsonDecode(response2.body)["data"];
-    brands = jsonDecode(response3.body)["data"];
-    List stocks = jsonDecode(response4.body)["data"];
+    try {
+      String url = 'https://store-inventory-apis.herokuapp.com/sales';
+      var response = await http.get(url);
+      String brandUrl = 'https://store-inventory-apis.herokuapp.com/brands';
+      var response1 = await http.get(brandUrl);
+      String itemUrl = 'https://store-inventory-apis.herokuapp.com/items';
+      var response2 = await http.get(itemUrl);
+      String customerUrl =
+          'https://store-inventory-apis.herokuapp.com/customers';
+      var response3 = await http.get(customerUrl);
+      String stockUrl = 'https://store-inventory-apis.herokuapp.com/stocks';
+      var response4 = await http.get(stockUrl);
+      String supplierUrl =
+          'https://store-inventory-apis.herokuapp.com/suppliers';
+      var response5 = await http.get(supplierUrl);
 
-    for (var i = 0; i < items.length; i++) {
-      for (var j = 0; j < brands.length; j++) {
-        if (items[i]["brand_id"] == brands[j]["id"]) {
-          items[i]["nama"] = brands[j]["nama"];
-          items[i]["asal_negara"] = brands[j]["asal_negara"];
-        }
+      brands = jsonDecode(response1.body);
+      data = jsonDecode(response.body);
+      items = jsonDecode(response2.body);
+      customers = jsonDecode(response3.body);
+      stocks = jsonDecode(response4.body);
+      suppliers = jsonDecode(response5.body);
+
+      if (data is Map) {
+        setState(() {
+          data = [];
+        });
       }
-      items[i]["list"] = <dynamic>[];
-      bool flags = false;
-      for (var j = 0; j < stocks.length; j++) {
-        if (items[i]["id"] == stocks[j]["item_id"]) {
-          for (var k = 0; k < items[i]["list"].length; k++) {
-            if (items[i]["list"][k]["ukuran"].toString() ==
-                stocks[j]["ukuran"].toString()) {
-              flags = true;
-            }
-          }
-          if (!flags) {
-            items[i]["list"].add(json.decode(
-                '{ "ukuran" : "${stocks[j]['ukuran']}", "jumlah" : "${stocks[j]['jumlah']}"  }'));
-            flags = false;
-          }
-        }
+      if (brands is Map) {
+        setState(() {
+          brands = [];
+        });
       }
-    }
-    for (var i = 0; i < data.length; i++) {
-      for (var j = 0; j < items.length; j++) {
-        if (data[i]["item_id"] == items[j]["id"]) {
-          data[i]["item_info"] = items[j];
-        }
+      if (items is Map) {
+        setState(() {
+          brands = [];
+        });
       }
-      for (var j = 0; j < customers.length; j++) {
-        if (data[i]["customer_id"] == customers[j]["id"]) {
-          data[i]["customer_info"] = customers[j];
-        }
+      if (customers is Map) {
+        setState(() {
+          items = [];
+        });
       }
+      if (stocks is Map) {
+        setState(() {
+          stocks = [];
+        });
+      }
+      if (suppliers is Map) {
+        setState(() {
+          suppliers = [];
+        });
+      }
+      setState(() {});
+    } on Exception catch (_) {
+      renderScreen();
     }
   }
 
-  void _renderScreen() {
+  void renderScreen() {
     setState(() {
-      _fetchData();
+      data = null;
+      brands = null;
     });
+    _checkConnection();
+    // _fetchData();
   }
 
+  void _checkConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        connection = true;
+        _fetchData();
+      }
+    } on SocketException catch (_) {
+      setState(() {
+        connection = false;
+      });
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
-    _fetchData();
+    _checkConnection();
   }
 
   int _pageIndex = 0;
@@ -767,7 +880,6 @@ class _HomeState extends State<Home> {
   final List<Widget> headerComponents = [];
   @override
   Widget build(BuildContext context) {
-    _fetchData();
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -805,7 +917,8 @@ class _HomeState extends State<Home> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (BuildContext context) => AddCustomer(),
+                        builder: (BuildContext context) =>
+                            AddCustomer(renderScreen),
                       ),
                     );
                   },
@@ -820,7 +933,8 @@ class _HomeState extends State<Home> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (BuildContext context) => AddBrand(),
+                        builder: (BuildContext context) =>
+                            AddBrand(renderScreen),
                       ),
                     );
                   },
@@ -838,27 +952,123 @@ class _HomeState extends State<Home> {
       ),
       body: TabBarView(
         children: <Widget>[
-          Transaction(data),
-          StockDetail(items),
+          connection
+              ? data == null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Text(
+                            "Loading...",
+                            style: TextStyle(
+                                fontSize: 30,
+                                color: Color.fromRGBO(147, 137, 183, 1)),
+                          ),
+                        ],
+                      ),
+                    )
+                  : data.length == 0
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Icon(
+                                Icons.shopping_cart,
+                                size: 70,
+                                color: Colors.green,
+                              ),
+                              SizedBox(
+                                height: 30,
+                              ),
+                              Text(
+                                "Penjualan Kosong",
+                                style: TextStyle(
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Transaction(data, brands, renderScreen)
+              : Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Text(
+                        "No Internet Connection",
+                        style: TextStyle(fontSize: 30),
+                      ),
+                      FlatButton(
+                        child: Text(
+                          'Try again',
+                          style: TextStyle(color: Colors.black, fontSize: 20),
+                        ),
+                        onPressed: () {
+                          _checkConnection();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+          connection
+              ? data == null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Text(
+                            "Loading...",
+                            style: TextStyle(
+                                fontSize: 30,
+                                color: Color.fromRGBO(147, 137, 183, 1)),
+                          ),
+                        ],
+                      ),
+                    )
+                  : StockDetail(items, stocks, renderScreen)
+              : Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Text(
+                        "No Internet Connection",
+                        style: TextStyle(fontSize: 30),
+                      ),
+                      FlatButton(
+                        child: Text(
+                          'Try again',
+                          style: TextStyle(color: Colors.black, fontSize: 20),
+                        ),
+                        onPressed: () {
+                          _checkConnection();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blueAccent,
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => _pageIndex == 0
-                    ? AddTransaction(_renderScreen)
-                    : AddBarang(brands, items)),
-          );
-        },
-        child: Icon(
-          Icons.add,
-          color: Colors.white,
-          size: 20,
-        ),
-      ),
+      floatingActionButton: data != null
+          ? FloatingActionButton(
+              backgroundColor: Colors.blueAccent,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => _pageIndex == 0
+                        ? AddTransaction(renderScreen, items, customers, stocks)
+                        : AddBarang(brands, items, suppliers, renderScreen),
+                  ),
+                );
+              },
+              child: Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 20,
+              ),
+            )
+          : Text(''),
     );
   }
 }
