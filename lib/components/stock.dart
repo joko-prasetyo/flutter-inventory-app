@@ -271,8 +271,12 @@ class _EditState extends State<Edit> {
                     ),
                   ),
                 ),
-                SizedBox(
-                  height: 20,
+                ListTile(
+                  title: Text(
+                    'Stock Info',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 ListTile(
                     subtitle: Slider(
