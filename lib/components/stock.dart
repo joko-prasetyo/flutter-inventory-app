@@ -271,42 +271,43 @@ class _EditState extends State<Edit> {
                     ),
                   ),
                 ),
+                SizedBox(
+                  height: 20,
+                ),
                 ListTile(
-                  subtitle: Slider(
-                    divisions: 200,
-                    label: 'Qty: ${quantitySlider.toString()}',
-                    activeColor: Colors.indigoAccent,
-                    min: 0,
-                    max: 200,
-                    onChanged: (double val) {
-                      setState(() { 
-                        quantitySlider = val.round();
-                        _stockBody["quantity"] = val.toString();
+                    subtitle: Slider(
+                      divisions: 200,
+                      label: 'Stock: ${quantitySlider.toString()}',
+                      activeColor: Colors.indigoAccent,
+                      min: 0,
+                      max: 200,
+                      onChanged: (double val) {
+                        setState(() {
+                          quantitySlider = val.round();
+                          _stockBody["quantity"] = val.toString();
                         });
-                    },
-                    value: quantitySlider.toDouble(),
-                  ),
-                  leading: Icon(Icons.storage),
-                  title: Text('Quantity: ${quantitySlider.toString()}')
-                ),
+                      },
+                      value: quantitySlider.toDouble(),
+                    ),
+                    leading: Icon(Icons.storage),
+                    title: Text('Stock: ${quantitySlider.toString()}')),
                 ListTile(
-                  subtitle: Slider(
-                    divisions: 150,
-                    label: 'Stock: ${_sizeSlider.toString()}',
-                    activeColor: Colors.indigoAccent,
-                    min: 0,
-                    max: 150,
-                    onChanged: (double val) {
-                      setState(() {
-                        _stockBody["size"] = val.toString();
-                        _sizeSlider = val.round();
-                      });
-                    },
-                    value: _sizeSlider.toDouble(),
-                  ),
-                  leading: Icon(Icons.info),
-                  title: Text('Size: ${_sizeSlider.toString()}')
-                ),
+                    subtitle: Slider(
+                      divisions: 150,
+                      label: 'Size: ${_sizeSlider.toString()}',
+                      activeColor: Colors.indigoAccent,
+                      min: 0,
+                      max: 150,
+                      onChanged: (double val) {
+                        setState(() {
+                          _stockBody["size"] = val.toString();
+                          _sizeSlider = val.round();
+                        });
+                      },
+                      value: _sizeSlider.toDouble(),
+                    ),
+                    leading: Icon(Icons.info),
+                    title: Text('Size: ${_sizeSlider.toString()}')),
                 Divider(
                   height: 1.0,
                 ),
