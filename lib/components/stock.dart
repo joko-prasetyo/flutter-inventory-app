@@ -271,6 +271,9 @@ class _EditState extends State<Edit> {
                     ),
                   ),
                 ),
+                Divider(
+                  height: 1.0,
+                ),
                 ListTile(
                   title: Text(
                     'Stock Info',

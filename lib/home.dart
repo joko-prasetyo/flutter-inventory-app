@@ -81,6 +81,7 @@ class _AddTransactionState extends State<AddTransaction> {
                   onPressed: () {
                     renderScreen();
                     Navigator.of(context).pop();
+                    Navigator.of(context).pop();
                   },
                 )
               ],
@@ -118,124 +119,138 @@ class _AddTransactionState extends State<AddTransaction> {
         title: Text("Tambah Transaksi"),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                ListTile(
-                  leading: Icon(Icons.code),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Form should not be empty";
-                      _body["nota"] = val;
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Nomor Nota",
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.local_mall),
-                  title: DropdownButton(
-                    isExpanded: true,
-                    hint: Text('Barang'),
-                    value: dropDownItem,
-                    onChanged: (newValue) {
-                      setState(() {
-                        newValue = newValue.split(" ");
-                        dropDownItem = newValue[0] + " " + newValue[1];
-                        itemId = newValue[0];
-                        _stocksArrange(newValue[1]);
-                      });
-                    },
-                    items: items.map((item) {
-                      return DropdownMenuItem(
-                        child: new Text(item["brand_id"]["name"] +
-                            ' (${item["itemCode"]})'),
-                        value: item["_id"] + " ${item["brand_id"]["name"]}",
-                      );
-                    }).toList(),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.face),
-                  title: DropdownButton(
-                    isExpanded: true,
-                    hint: Text('Customer'),
-                    value: dropDownCustomer,
-                    onChanged: (newValue) {
-                      setState(() {
-                        dropDownCustomer = newValue;
-                      });
-                    },
-                    items: customers.map((customer) {
-                      return DropdownMenuItem(
-                        child: new Text(customer["name"]),
-                        value: customer["_id"],
-                      );
-                    }).toList(),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.format_list_numbered),
-                  title: DropdownButton(
-                    isExpanded: true,
-                    hint: Text('Ukuran'),
-                    value: dropDownSize,
-                    onChanged: (newValue) {
-                      setState(() {
-                        dropDownSize = newValue;
-                      });
-                    },
-                    items: stocks.map((stock) {
-                      return DropdownMenuItem(
-                        child: new Text(stock["size"].toString()),
-                        value: stock["size"].toString(),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.plus_one),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Form should not be empty";
-                      _body["jumlah"] = val;
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Jumlah",
-                    ),
-                  ),
-                ),
-                Divider(
-                  height: 1.0,
-                ),
-                Row(
+      body: Form(
+        key: _formKey,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              Expanded(
+                flex: 2,
+                child: Column(
                   children: <Widget>[
-                    Expanded(
-                      child: RaisedButton(
-                        onPressed: () {
-                          if (_formKey.currentState.validate()) {
-                            _addTransactionHandler();
-                          }
+                    ListTile(
+                      leading: Icon(Icons.code),
+                      title: TextFormField(
+                        validator: (val) {
+                          if (val.isEmpty) return "Form should not be empty";
+                          _body["nota"] = val;
+                          return null;
                         },
-                        child: Text(
-                          "Tambah",
-                          style: TextStyle(color: Colors.white, fontSize: 20),
+                        decoration: InputDecoration(
+                          hintText: "Nomor Nota",
                         ),
-                        color: Colors.blue,
+                      ),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.local_mall),
+                      title: DropdownButton(
+                        isExpanded: true,
+                        hint: Text('Barang'),
+                        value: dropDownItem,
+                        onChanged: (newValue) {
+                          setState(() {
+                            newValue = newValue.split(" ");
+                            dropDownItem = newValue[0] + " " + newValue[1];
+                            itemId = newValue[0];
+                            _stocksArrange(newValue[1]);
+                          });
+                        },
+                        items: items.map((item) {
+                          return DropdownMenuItem(
+                            child: new Text(item["brand_id"]["name"] +
+                                ' (${item["itemCode"]})'),
+                            value: item["_id"] + " ${item["brand_id"]["name"]}",
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.face),
+                      title: DropdownButton(
+                        isExpanded: true,
+                        hint: Text('Customer'),
+                        value: dropDownCustomer,
+                        onChanged: (newValue) {
+                          setState(() {
+                            dropDownCustomer = newValue;
+                          });
+                        },
+                        items: customers.map((customer) {
+                          return DropdownMenuItem(
+                            child: new Text(customer["name"]),
+                            value: customer["_id"],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.format_list_numbered),
+                      title: DropdownButton(
+                        isExpanded: true,
+                        hint: Text('Ukuran'),
+                        value: dropDownSize,
+                        onChanged: (newValue) {
+                          setState(() {
+                            dropDownSize = newValue;
+                          });
+                        },
+                        items: stocks.map((stock) {
+                          return DropdownMenuItem(
+                            child: new Text(stock["size"].toString()),
+                            value: stock["size"].toString(),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.plus_one),
+                      title: TextFormField(
+                        validator: (val) {
+                          if (val.isEmpty) return "Form should not be empty";
+                          _body["jumlah"] = val;
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Jumlah",
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              Divider(
+                height: 1.0,
+              ),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: RaisedButton(
+                            onPressed: () {
+                              if (_formKey.currentState.validate()) {
+                                _addTransactionHandler();
+                              }
+                            },
+                            child: Text(
+                              "Tambah",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 20),
+                            ),
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              )
+            ],
           ),
         ),
       ),
@@ -338,124 +353,138 @@ class _AddBarangState extends State<AddBarang> {
         title: Text("Tambah Barang"),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                ListTile(
-                  leading: Icon(Icons.face),
-                  title: DropdownButton(
-                    isExpanded: true,
-                    hint: Text('Pilih Supplier'),
-                    value: dropDownSupplier,
-                    onChanged: (newValue) {
-                      setState(() {
-                        dropDownSupplier = newValue;
-                      });
-                    },
-                    items: suppliers.map((supplier) {
-                      return DropdownMenuItem(
-                        child: new Text(supplier["name"]),
-                        value: supplier["_id"],
-                      );
-                    }).toList(),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.branding_watermark),
-                  title: DropdownButton(
-                    isExpanded: true,
-                    hint: Text('Pilih Merek'),
-                    value: dropDownBrand,
-                    onChanged: (newValue) {
-                      setState(() {
-                        dropDownBrand = newValue;
-                      });
-                    },
-                    items: brands.map((brand) {
-                      return DropdownMenuItem(
-                        child: new Text(brand["name"]),
-                        value: brand["_id"],
-                      );
-                    }).toList(),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.format_size),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Field should not be empty";
-                      _body["ukuran"] = val.toString();
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Ukuran",
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.plus_one),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Field should not be empty";
-                      _body["jumlah"] = val.toString();
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Jumlah",
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.monetization_on),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Field should not be empty";
-                      _body["harga"] = val.toString();
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Harga",
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.code),
-                  title: TextFormField(
-                    validator: (val) {
-                      if (val.isEmpty) return "Field should not be empty";
-                      _body["kode_barang"] = val.toString();
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Kode Barang",
-                    ),
-                  ),
-                ),
-                Row(
+      body: Form(
+        key: _formKey,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              Expanded(
+                flex: 2,
+                child: Column(
                   children: <Widget>[
-                    Expanded(
-                      child: RaisedButton(
-                        onPressed: () {
-                          if (_formKey.currentState.validate()) {
-                            _addBarang(context);
-                          }
+                    ListTile(
+                      leading: Icon(Icons.face),
+                      title: DropdownButton(
+                        isExpanded: true,
+                        hint: Text('Pilih Supplier'),
+                        value: dropDownSupplier,
+                        onChanged: (newValue) {
+                          setState(() {
+                            dropDownSupplier = newValue;
+                          });
                         },
-                        child: Text(
-                          "Tambah",
-                          style: TextStyle(color: Colors.white, fontSize: 20),
-                        ),
-                        color: Colors.blue,
+                        items: suppliers.map((supplier) {
+                          return DropdownMenuItem(
+                            child: new Text(supplier["name"]),
+                            value: supplier["_id"],
+                          );
+                        }).toList(),
                       ),
-                    )
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.branding_watermark),
+                      title: DropdownButton(
+                        isExpanded: true,
+                        hint: Text('Pilih Merek'),
+                        value: dropDownBrand,
+                        onChanged: (newValue) {
+                          setState(() {
+                            dropDownBrand = newValue;
+                          });
+                        },
+                        items: brands.map((brand) {
+                          return DropdownMenuItem(
+                            child: new Text(brand["name"]),
+                            value: brand["_id"],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.format_size),
+                      title: TextFormField(
+                        validator: (val) {
+                          if (val.isEmpty) return "Field should not be empty";
+                          _body["ukuran"] = val.toString();
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Ukuran",
+                        ),
+                      ),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.plus_one),
+                      title: TextFormField(
+                        validator: (val) {
+                          if (val.isEmpty) return "Field should not be empty";
+                          _body["jumlah"] = val.toString();
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Jumlah",
+                        ),
+                      ),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.monetization_on),
+                      title: TextFormField(
+                        validator: (val) {
+                          if (val.isEmpty) return "Field should not be empty";
+                          _body["harga"] = val.toString();
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Harga",
+                        ),
+                      ),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.code),
+                      title: TextFormField(
+                        validator: (val) {
+                          if (val.isEmpty) return "Field should not be empty";
+                          _body["kode_barang"] = val.toString();
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Kode Barang",
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: RaisedButton(
+                            onPressed: () {
+                              if (_formKey.currentState.validate()) {
+                                _addBarang(context);
+                              }
+                            },
+                            child: Text(
+                              "Tambah",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 20),
+                            ),
+                            color: Colors.blue,
+                          ),
+                        )
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -786,7 +815,7 @@ class AddBrand extends StatelessWidget {
   }
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with TickerProviderStateMixin {
   dynamic data;
   dynamic brands;
   dynamic items;
@@ -795,6 +824,7 @@ class _HomeState extends State<Home> {
   dynamic suppliers;
   bool connection = true;
   String _string;
+  var _controller;
   void _fetchData() async {
     try {
       String url = 'https://store-inventory-apis.herokuapp.com/sales';
@@ -881,6 +911,14 @@ class _HomeState extends State<Home> {
 
   @override
   void initState() {
+    _controller = TabController(vsync: this, length: _titles.length);
+    _controller.addListener(() {
+      setState(() {
+        _controller.index == 0 ? _isHistory = true : _isHistory = false;
+        _title = _titles[_controller.index];
+        _pageIndex = _controller.index;
+      });
+    });
     _string = Utils.CreateCryptoRandomString();
     super.initState();
     _checkConnection();
@@ -898,6 +936,7 @@ class _HomeState extends State<Home> {
         elevation: 0,
         centerTitle: true,
         bottom: TabBar(
+          controller: _controller,
           onTap: (int i) {
             setState(() {
               i == 0 ? _isHistory = true : _isHistory = false;
@@ -964,6 +1003,7 @@ class _HomeState extends State<Home> {
         ),
       ),
       body: TabBarView(
+        controller: _controller,
         children: <Widget>[
           connection
               ? data == null
