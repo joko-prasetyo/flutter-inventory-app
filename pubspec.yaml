@@ -19,6 +19,8 @@ module:
   androidX: true
 dependencies:
   image_picker: ^0.6.2+3
+  path_provider: ^1.5.1
+  dio: ^3.0.8
   cached_network_image: ^2.0.0
   http: ^0.12.0+3
   json_api: ^2.1.0

@@ -5,6 +5,17 @@ import 'package:http/http.dart';
 import 'components/stock.dart';
 import 'components/transaction_page.dart';
 import 'dart:io';
+import 'dart:math';
+
+class Utils {
+  static final Random _random = Random.secure();
+
+  static String CreateCryptoRandomString([int length = 32]) {
+    var values = List<int>.generate(length, (i) => _random.nextInt(256));
+
+    return base64Url.encode(values);
+  }
+}
 
 class Home extends StatefulWidget {
   @override
@@ -33,7 +44,6 @@ class _AddTransactionState extends State<AddTransaction> {
   List stocksTemp;
   List stocks = [];
   String itemId;
-
   _AddTransactionState(
       this.renderScreen, this.items, this.customers, this.stocksTemp);
   _addTransactionHandler() async {
@@ -784,6 +794,7 @@ class _HomeState extends State<Home> {
   dynamic stocks;
   dynamic suppliers;
   bool connection = true;
+  String _string;
   void _fetchData() async {
     try {
       String url = 'https://store-inventory-apis.herokuapp.com/sales';
@@ -845,6 +856,7 @@ class _HomeState extends State<Home> {
   }
 
   void renderScreen() {
+    _string = Utils.CreateCryptoRandomString();
     setState(() {
       data = null;
       brands = null;
@@ -869,6 +881,7 @@ class _HomeState extends State<Home> {
 
   @override
   void initState() {
+    _string = Utils.CreateCryptoRandomString();
     super.initState();
     _checkConnection();
   }
@@ -958,11 +971,9 @@ class _HomeState extends State<Home> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
-                          Text(
-                            "Loading...",
-                            style: TextStyle(
-                                fontSize: 30,
-                                color: Color.fromRGBO(147, 137, 183, 1)),
+                          CircularProgressIndicator(
+                            backgroundColor: Colors.blue,
+                            semanticsLabel: 'Please wait...',
                           ),
                         ],
                       ),
@@ -1005,7 +1016,10 @@ class _HomeState extends State<Home> {
                           style: TextStyle(color: Colors.black, fontSize: 20),
                         ),
                         onPressed: () {
-                          _checkConnection();
+                          setState(() {
+                            data = null;
+                          });
+                          renderScreen();
                         },
                       ),
                     ],
@@ -1017,36 +1031,36 @@ class _HomeState extends State<Home> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
-                          Text(
-                            "Loading...",
-                            style: TextStyle(
-                                fontSize: 30,
-                                color: Color.fromRGBO(147, 137, 183, 1)),
+                          CircularProgressIndicator(
+                            backgroundColor: Colors.blue,
+                            semanticsLabel: 'Please Wait...',
                           ),
                         ],
                       ),
                     )
-                  : StockDetail(items, stocks, renderScreen)
+                  : StockDetail(items, stocks, renderScreen, _string)
               : Center(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Text(
-                        "No Internet Connection",
-                        style: TextStyle(fontSize: 30),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      "No Internet Connection",
+                      style: TextStyle(fontSize: 30),
+                    ),
+                    FlatButton(
+                      child: Text(
+                        'Try again',
+                        style: TextStyle(color: Colors.black, fontSize: 20),
                       ),
-                      FlatButton(
-                        child: Text(
-                          'Try again',
-                          style: TextStyle(color: Colors.black, fontSize: 20),
-                        ),
-                        onPressed: () {
-                          _checkConnection();
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+                      onPressed: () {
+                        setState(() {
+                          data = null;
+                        });
+                        renderScreen();
+                      },
+                    ),
+                  ],
+                )),
         ],
       ),
       floatingActionButton: data != null

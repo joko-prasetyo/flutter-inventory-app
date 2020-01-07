@@ -189,12 +189,6 @@ class _TransactionState extends State<Transaction> {
                               );
                             },
                           ),
-                          IconButton(
-                            icon: Icon(Icons.edit),
-                            color: Colors.blue,
-                            iconSize: 30,
-                            onPressed: () {},
-                          )
                         ],
                       ),
                       Row(

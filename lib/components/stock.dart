@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart' as http;
 // import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
@@ -11,10 +14,11 @@ class StockDetail extends StatefulWidget {
   final items;
   final stocks;
   final Function renderScreen;
-  StockDetail(this.items, this.stocks, this.renderScreen);
+  final String _string;
+  StockDetail(this.items, this.stocks, this.renderScreen, this._string);
   @override
   _StockDetailState createState() =>
-      _StockDetailState(items, stocks, renderScreen);
+      _StockDetailState(items, stocks, renderScreen, _string);
 }
 
 class Edit extends StatefulWidget {
@@ -31,11 +35,28 @@ class _EditState extends State<Edit> {
   Function renderScreen;
   var _brandBody = {};
   var _itemBody = {};
+  var _stockBody = {};
+  int quantitySlider;
+  int _sizeSlider;
   _EditState(item, renderScreen) {
     this.item = item;
+    this.quantitySlider = item["stock_info"]["quantity"];
+    this._sizeSlider = item["stock_info"]["size"];
     this.renderScreen = renderScreen;
   }
-  Future profileImg;
+
+  File _image;
+  Future getImage(item) async {
+    var image = await ImagePicker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      Directory dir = await getApplicationDocumentsDirectory();
+      String path = dir.path;
+      await image.copy('$path/${item["_id"]}.jpg');
+      setState(() {
+        _image = image;
+      });
+    }
+  }
 
   void _edit(item) async {
     String url;
@@ -44,20 +65,44 @@ class _EditState extends State<Edit> {
       "Accept": "application/json",
       "Content-Type": "application/json"
     };
-    var response;
+    var responseBrand;
+    var responseItem;
+    var responseImage;
+    var responseStock;
+    var dio = http.Dio();
     try {
+      if (_stockBody.isNotEmpty) {
+        url =
+            'https://store-inventory-apis.herokuapp.com/stocks/${item["stock_info"]["_id"]}';
+        body = jsonEncode(_stockBody);
+        responseStock = await patch(url, body: body, headers: headers);
+      }
+      if (_image != null) {
+        url =
+            'https://store-inventory-apis.herokuapp.com/items/${item["_id"]}/image';
+        Directory dir = await getApplicationDocumentsDirectory();
+        String path = dir.path;
+        http.FormData formData = http.FormData.fromMap({
+          "image": await http.MultipartFile.fromFile(
+              "${path.toString()}/${item["_id"]}.jpg")
+        });
+        responseImage = await dio.post(url, data: formData);
+      }
       if (_brandBody.isNotEmpty) {
         url =
             'https://store-inventory-apis.herokuapp.com/brands/${item["brand_id"]["_id"]}';
         body = jsonEncode(_brandBody);
-        response = await patch(url, body: body, headers: headers);
+        responseBrand = await patch(url, body: body, headers: headers);
       }
       if (_itemBody.isNotEmpty) {
         url = 'https://store-inventory-apis.herokuapp.com/items/${item["_id"]}';
         body = jsonEncode(_itemBody);
-        response = await patch(url, body: body, headers: headers);
+        responseItem = await patch(url, body: body, headers: headers);
       }
-      if (response != null && response.statusCode == 200) {
+      if ((responseBrand != null && responseBrand.statusCode == 200 ||
+          responseItem != null && responseItem.statusCode == 200 ||
+          responseImage != null && responseImage.statusCode == 200 ||
+          responseStock != null && responseStock.statusCode == 200)) {
         return showDialog<void>(
           context: context,
           barrierDismissible: false,
@@ -77,6 +122,35 @@ class _EditState extends State<Edit> {
                   ),
                   onPressed: () {
                     renderScreen();
+                    Navigator.of(context).pop();
+                  },
+                )
+              ],
+            );
+          },
+        );
+      } else {
+        return showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Informasi'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[
+                    Text(
+                        "Gambar terlalu besar atau Kode barang sudah terdaftar")
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                FlatButton(
+                  child: Text(
+                    'Ok',
+                    style: TextStyle(color: Colors.black, fontSize: 15),
+                  ),
+                  onPressed: () {
                     Navigator.of(context).pop();
                   },
                 )
@@ -144,259 +218,285 @@ class _EditState extends State<Edit> {
         ),
         centerTitle: true,
       ),
-      body: Form(
-        key: _formKey,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              ListTile(
-                leading: Icon(Icons.border_color),
-                title: TextFormField(
-                  initialValue: item["brand_id"]["name"],
-                  validator: (val) {
-                    if (val != item["brand_id"]["name"]) {
-                      _brandBody["name"] = val.toString();
-                    }
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    hintText: "Nama Brand",
-                  ),
-                ),
-              ),
-              ListTile(
-                leading: Icon(Icons.code),
-                title: TextFormField(
-                  validator: (val) {
-                    if (val != item["itemCode"]) {
-                      _itemBody["itemCode"] = val.toString();
-                    }
-                    return null;
-                  },
-                  initialValue: item["itemCode"],
-                  decoration: InputDecoration(
-                    hintText: "Kode Barang",
-                  ),
-                ),
-              ),
-              ListTile(
-                leading: Icon(Icons.attach_money),
-                title: TextFormField(
-                  validator: (val) {
-                    if (val != item["price"].toString()) {
-                      _itemBody["price"] = val.toString();
-                    }
-                    return null;
-                  },
-                  initialValue: item["price"].toString(),
-                  decoration: InputDecoration(
-                    hintText: "Harga",
-                  ),
-                ),
-              ),
-              ListTile(
-                leading: Icon(Icons.storage),
-                title: Text("Stock: ${item['stock_info']['quantity']}"),
-              ),
-              Divider(
-                height: 1.0,
-              ),
-              ListTile(
-                title: Text(
-                  'Additional Info',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-                ),
-              ),
-              ListTile(
-                leading: Icon(Icons.branding_watermark),
-                title: Text('Merek'),
-                subtitle: Text('${item["brand_id"]["name"]}'),
-              ),
-              ListTile(
-                leading: Icon(Icons.location_city),
-                title: Text('Asal Negara'),
-                subtitle: Text('${item["brand_id"]["origin"]}'),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: <Widget>[
-                  Container(
-                    child: FutureBuilder(
-                      builder: (context, data) {
-                        if (data.hasData) {
-                          return Container(
-                            child: Image.file(
-                              data.data,
-                              fit: BoxFit.contain,
-                              height: 200.0,
-                            ),
-                            color: Colors.blue,
-                          );
-                        }
-                        return GestureDetector(
-                          onTap: () {
-                            profileImg = ImagePicker.pickImage(
-                                    source: ImageSource.gallery)
-                                .whenComplete(() {
-                              setState(() {});
-                            });
-                          },
-                          child:
-                              Image.network('https://via.placeholder.com/75'),
-                        );
-                      },
-                      future: profileImg,
+      body: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                ListTile(
+                  leading: Icon(Icons.border_color),
+                  title: TextFormField(
+                    initialValue: item["brand_id"]["name"],
+                    validator: (val) {
+                      if (val != item["brand_id"]["name"]) {
+                        _brandBody["name"] = val.toString();
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      hintText: "Nama Brand",
                     ),
-                  )
-                ],
-              ),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: RaisedButton(
-                      onPressed: () {
-                        if (_formKey.currentState.validate() &&
-                            (_itemBody.isNotEmpty || _brandBody.isNotEmpty)) {
-                          return showDialog<void>(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: Text('Catatan'),
-                                content: SingleChildScrollView(
-                                  child: ListBody(
-                                    children: <Widget>[
-                                      Text("Ingin mengubah informasi barang ?")
-                                    ],
-                                  ),
-                                ),
-                                actions: <Widget>[
-                                  FlatButton(
-                                    child: Text(
-                                      'Ya',
-                                      style: TextStyle(
-                                          color: Colors.black, fontSize: 15),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                      _edit(item);
-                                    },
-                                  ),
-                                  FlatButton(
-                                    child: Text(
-                                      'Tidak',
-                                      style: TextStyle(
-                                          color: Colors.black, fontSize: 15),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                  )
-                                ],
-                              );
-                            },
-                          );
-                        } else {
-                          return showDialog<void>(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: Text('Gagal mengubah'),
-                                content: SingleChildScrollView(
-                                  child: ListBody(
-                                    children: <Widget>[
-                                      Text(
-                                          "Silahkan mengubah informasi barang.")
-                                    ],
-                                  ),
-                                ),
-                                actions: <Widget>[
-                                  FlatButton(
-                                    child: Text(
-                                      'Ok',
-                                      style: TextStyle(
-                                          color: Colors.black, fontSize: 15),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        }
-                      },
-                      child: Text(
-                        "Ubah",
-                        style: TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.code),
+                  title: TextFormField(
+                    validator: (val) {
+                      if (val != item["itemCode"]) {
+                        _itemBody["itemCode"] = val.toString();
+                      }
+                      return null;
+                    },
+                    initialValue: item["itemCode"],
+                    decoration: InputDecoration(
+                      hintText: "Kode Barang",
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.attach_money),
+                  title: TextFormField(
+                    validator: (val) {
+                      if (val != item["price"].toString()) {
+                        _itemBody["price"] = val.toString();
+                      }
+                      return null;
+                    },
+                    initialValue: item["price"].toString(),
+                    decoration: InputDecoration(
+                      hintText: "Harga",
+                    ),
+                  ),
+                ),
+                ListTile(
+                  subtitle: Slider(
+                    divisions: 200,
+                    label: 'Qty: ${quantitySlider.toString()}',
+                    activeColor: Colors.indigoAccent,
+                    min: 0,
+                    max: 200,
+                    onChanged: (double val) {
+                      setState(() { 
+                        quantitySlider = val.round();
+                        _stockBody["quantity"] = val.toString();
+                        });
+                    },
+                    value: quantitySlider.toDouble(),
+                  ),
+                  leading: Icon(Icons.storage),
+                  title: Text('Quantity: ${quantitySlider.toString()}')
+                ),
+                ListTile(
+                  subtitle: Slider(
+                    divisions: 150,
+                    label: 'Stock: ${_sizeSlider.toString()}',
+                    activeColor: Colors.indigoAccent,
+                    min: 0,
+                    max: 150,
+                    onChanged: (double val) {
+                      setState(() {
+                        _stockBody["size"] = val.toString();
+                        _sizeSlider = val.round();
+                      });
+                    },
+                    value: _sizeSlider.toDouble(),
+                  ),
+                  leading: Icon(Icons.info),
+                  title: Text('Size: ${_sizeSlider.toString()}')
+                ),
+                Divider(
+                  height: 1.0,
+                ),
+                ListTile(
+                  title: Text(
+                    'Additional Info',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.branding_watermark),
+                  title: Text('Merek'),
+                  subtitle: Text('${item["brand_id"]["name"]}'),
+                ),
+                ListTile(
+                  leading: Icon(Icons.location_city),
+                  title: Text('Asal Negara'),
+                  subtitle: Text('${item["brand_id"]["origin"]}'),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: <Widget>[
+                    Container(
+                      child: GestureDetector(
+                        onTap: () {
+                          getImage(item);
+                        },
+                        child: _image == null
+                            ? CachedNetworkImage(
+                                imageUrl: 'https://via.placeholder.com/100')
+                            : Image.file(
+                                _image,
+                                width: 75.0,
+                                height: 75.0,
+                                fit: BoxFit.fill,
+                              ),
                       ),
-                      color: Colors.blue,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 10,
-                  ),
-                  Expanded(
-                    child: RaisedButton(
-                      onPressed: () async {
-                        if (_formKey.currentState.validate()) {
-                          return showDialog<void>(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: Text('Catatan'),
-                                content: SingleChildScrollView(
-                                  child: ListBody(
-                                    children: <Widget>[
-                                      Text(
-                                          "Ingin menghapus barang beserta stock ?")
-                                    ],
-                                  ),
-                                ),
-                                actions: <Widget>[
-                                  FlatButton(
-                                    child: Text(
-                                      'Ya',
-                                      style: TextStyle(
-                                          color: Colors.black, fontSize: 15),
+                    )
+                  ],
+                ),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: RaisedButton(
+                        onPressed: () {
+                          if (_formKey.currentState.validate() &&
+                              (_itemBody.isNotEmpty ||
+                                  _brandBody.isNotEmpty ||
+                                  _image != null ||
+                                  _stockBody.isNotEmpty)) {
+                            return showDialog<void>(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text('Catatan'),
+                                  content: SingleChildScrollView(
+                                    child: ListBody(
+                                      children: <Widget>[
+                                        Text(
+                                            "Ingin mengubah informasi barang ?")
+                                      ],
                                     ),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                      _delete(item["_id"]);
-                                    },
                                   ),
-                                  FlatButton(
-                                    child: Text(
-                                      'Tidak',
-                                      style: TextStyle(
-                                          color: Colors.black, fontSize: 15),
+                                  actions: <Widget>[
+                                    FlatButton(
+                                      child: Text(
+                                        'Ya',
+                                        style: TextStyle(
+                                            color: Colors.black, fontSize: 15),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        _edit(item);
+                                      },
                                     ),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                  )
-                                ],
-                              );
-                            },
-                          );
-                        }
-                      },
-                      child: Text(
-                        "Hapus",
-                        style: TextStyle(color: Colors.white, fontSize: 20),
+                                    FlatButton(
+                                      child: Text(
+                                        'Tidak',
+                                        style: TextStyle(
+                                            color: Colors.black, fontSize: 15),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    )
+                                  ],
+                                );
+                              },
+                            );
+                          } else {
+                            return showDialog<void>(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text('Gagal mengubah'),
+                                  content: SingleChildScrollView(
+                                    child: ListBody(
+                                      children: <Widget>[
+                                        Text(
+                                            "Silahkan mengubah informasi barang.")
+                                      ],
+                                    ),
+                                  ),
+                                  actions: <Widget>[
+                                    FlatButton(
+                                      child: Text(
+                                        'Ok',
+                                        style: TextStyle(
+                                            color: Colors.black, fontSize: 15),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          }
+                        },
+                        child: Text(
+                          "Ubah",
+                          style: TextStyle(color: Colors.white, fontSize: 20),
+                        ),
+                        color: Colors.blue,
                       ),
-                      color: Colors.red,
                     ),
-                  )
-                ],
-              ),
-            ],
+                    SizedBox(
+                      width: 10,
+                    ),
+                    Expanded(
+                      child: RaisedButton(
+                        onPressed: () async {
+                          if (_formKey.currentState.validate()) {
+                            return showDialog<void>(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text('Catatan'),
+                                  content: SingleChildScrollView(
+                                    child: ListBody(
+                                      children: <Widget>[
+                                        Text(
+                                            "Ingin menghapus barang beserta stock ?")
+                                      ],
+                                    ),
+                                  ),
+                                  actions: <Widget>[
+                                    FlatButton(
+                                      child: Text(
+                                        'Ya',
+                                        style: TextStyle(
+                                            color: Colors.black, fontSize: 15),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        _delete(item["_id"]);
+                                      },
+                                    ),
+                                    FlatButton(
+                                      child: Text(
+                                        'Tidak',
+                                        style: TextStyle(
+                                            color: Colors.black, fontSize: 15),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    )
+                                  ],
+                                );
+                              },
+                            );
+                          }
+                        },
+                        child: Text(
+                          "Hapus",
+                          style: TextStyle(color: Colors.white, fontSize: 20),
+                        ),
+                        color: Colors.red,
+                      ),
+                    )
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -414,10 +514,12 @@ class _StockDetailState extends State<StockDetail> {
   // }
   dynamic stocks;
   Function renderScreen;
-  _StockDetailState(items, stocks, renderScreen) {
+  String _string;
+  _StockDetailState(items, stocks, renderScreen, _string) {
     this.items = items;
     this.stocks = stocks;
     this.renderScreen = renderScreen;
+    this._string = _string;
     for (int i = 0; i < items.length; i++) {
       for (int j = 0; j < stocks.length; j++) {
         if (this.items[i]["_id"] == this.stocks[j]["item_id"]) {
@@ -427,7 +529,6 @@ class _StockDetailState extends State<StockDetail> {
     }
     _stockCount = items.length;
   }
-  int counter = 0;
   @override
   void initState() {
     super.initState();
@@ -467,9 +568,10 @@ class _StockDetailState extends State<StockDetail> {
                       children: <Widget>[
                         CachedNetworkImage(
                           imageUrl:
-                              "https://store-inventory-apis.herokuapp.com/items/${items[index]["_id"]}/image?dummy=${counter++}",
-                          placeholder: (context, url) =>
-                              CircularProgressIndicator(),
+                              "https://store-inventory-apis.herokuapp.com/items/${items[index]["_id"]}/image?dummy=${_string.toString()}",
+                          placeholder: (context, url) => Center(
+                              child: CircularProgressIndicator(
+                                  backgroundColor: Colors.blue)),
                           errorWidget: (context, url, error) => Center(
                               child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
