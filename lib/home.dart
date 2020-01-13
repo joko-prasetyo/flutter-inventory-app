@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'components/stock.dart';
+import 'package:connectivity/connectivity.dart';
 import 'components/transaction_page.dart';
-import 'dart:io';
 import 'dart:math';
 
 class Utils {
@@ -56,7 +55,7 @@ class _AddTransactionState extends State<AddTransaction> {
       "item_quantity": "${_body['jumlah'].toString()}"
     });
     try {
-      var response = await post(url, body: body, headers: {
+      var response = await http.post(url, body: body, headers: {
         "Accept": "application/json",
         "Content-Type": "application/json"
       });
@@ -88,10 +87,65 @@ class _AddTransactionState extends State<AddTransaction> {
             );
           },
         );
+      } else {
+        return showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Informasi'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[
+                    Text(
+                        "Transaksi gagal ditambah karena kode transaksi sudah ada.")
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                FlatButton(
+                  child: Text(
+                    'Ok',
+                    style: TextStyle(color: Colors.black, fontSize: 15),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                )
+              ],
+            );
+          },
+        );
       }
     } on Exception catch (_) {
-      Navigator.of(context).pop();
-      renderScreen();
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Informasi'),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text("Sepertinya ada masalah Error: ${_.toString()}")
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              FlatButton(
+                child: Text(
+                  'Ok',
+                  style: TextStyle(color: Colors.black, fontSize: 15),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  renderScreen();
+                },
+              )
+            ],
+          );
+        },
+      );
     }
   }
 
@@ -300,7 +354,7 @@ class _AddBarangState extends State<AddBarang> {
     });
 
     try {
-      var response = await post(url, body: body, headers: headers);
+      var response = await http.post(url, body: body, headers: headers);
 
       url = 'https://store-inventory-apis.herokuapp.com/stocks';
 
@@ -312,12 +366,12 @@ class _AddBarangState extends State<AddBarang> {
         "quantity": "${_body['jumlah'].toString()}"
       });
 
-      var response1 = await post(url, body: body, headers: headers);
+      var response1 = await http.post(url, body: body, headers: headers);
 
       if (response.statusCode == 201 && response1.statusCode == 201) {
         return showDialog<void>(
           context: context,
-          barrierDismissible: false, // user must tap button!
+          barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
               title: Text('Informasi'),
@@ -332,6 +386,32 @@ class _AddBarangState extends State<AddBarang> {
                   onPressed: () {
                     renderScreen();
                     Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        return showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Informasi'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[
+                    Text('Barang gagal ditambah karena kode barang sudah ada.')
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                FlatButton(
+                  child: Text('Ok'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
                   },
                 ),
               ],
@@ -340,8 +420,31 @@ class _AddBarangState extends State<AddBarang> {
         );
       }
     } on Exception catch (_) {
-      Navigator.of(context).pop();
-      renderScreen();
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Gagal'),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text('Sepertinya sedang ada masalah. Error: ${_.toString()}')
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              FlatButton(
+                child: Text('Ok'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  renderScreen();
+                },
+              ),
+            ],
+          );
+        },
+      );
     }
   }
 
@@ -505,7 +608,7 @@ class AddCustomer extends StatelessWidget {
       "address": _body["alamat"].toString()
     });
     try {
-      var response = await post(url, body: msg, headers: {
+      var response = await http.post(url, body: msg, headers: {
         "Accept": "application/json",
         "Content-Type": "application/json"
       });
@@ -673,7 +776,7 @@ class AddBrand extends StatelessWidget {
     });
 
     try {
-      var response = await post(url, body: body, headers: {
+      var response = await http.post(url, body: body, headers: {
         "Accept": "application/json",
         "Content-Type": "application/json"
       });
@@ -827,61 +930,89 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   var _controller;
   void _fetchData() async {
     try {
-      String url = 'https://store-inventory-apis.herokuapp.com/sales';
-      var response = await http.get(url);
-      String brandUrl = 'https://store-inventory-apis.herokuapp.com/brands';
-      var response1 = await http.get(brandUrl);
-      String itemUrl = 'https://store-inventory-apis.herokuapp.com/items';
-      var response2 = await http.get(itemUrl);
-      String customerUrl =
-          'https://store-inventory-apis.herokuapp.com/customers';
-      var response3 = await http.get(customerUrl);
-      String stockUrl = 'https://store-inventory-apis.herokuapp.com/stocks';
-      var response4 = await http.get(stockUrl);
-      String supplierUrl =
-          'https://store-inventory-apis.herokuapp.com/suppliers';
-      var response5 = await http.get(supplierUrl);
+      final urlList = [
+        'https://store-inventory-apis.herokuapp.com/sales',
+        'https://store-inventory-apis.herokuapp.com/brands',
+        'https://store-inventory-apis.herokuapp.com/items',
+        'https://store-inventory-apis.herokuapp.com/customers',
+        'https://store-inventory-apis.herokuapp.com/stocks',
+        'https://store-inventory-apis.herokuapp.com/suppliers'
+      ];
 
-      brands = jsonDecode(response1.body);
-      data = jsonDecode(response.body);
-      items = jsonDecode(response2.body);
-      customers = jsonDecode(response3.body);
-      stocks = jsonDecode(response4.body);
-      suppliers = jsonDecode(response5.body);
+      final responses = await Future.wait(
+        urlList.map((String url) {
+          return http.get(url);
+        }),
+      );
+      final List<dynamic> caches = responses.map((response) {
+        return json.decode(response.body);
+      }).toList();
+      data = caches[0];
+      brands = caches[1];
+      items = caches[2];
+      customers = caches[3];
+      stocks = caches[4];
+      suppliers = caches[5];
+      // String url = 'https://store-inventory-apis.herokuapp.com/sales';
+      // var response = await http.get(url);
+      // String brandUrl = 'https://store-inventory-apis.herokuapp.com/brands';
+      // var response1 = await http.get(brandUrl);
+      // String itemUrl = 'https://store-inventory-apis.herokuapp.com/items';
+      // var response2 = await http.get(itemUrl);
+      // String customerUrl =
+      //     'https://store-inventory-apis.herokuapp.com/customers';
+      // var response3 = await http.get(customerUrl);
+      // String stockUrl = 'https://store-inventory-apis.herokuapp.com/stocks';
+      // var response4 = await http.get(stockUrl);
+      // String supplierUrl =
+      //     'https://store-inventory-apis.herokuapp.com/suppliers';
+      // var response5 = await http.get(supplierUrl);
 
-      if (data is Map) {
-        setState(() {
-          data = [];
-        });
-      }
-      if (brands is Map) {
-        setState(() {
-          brands = [];
-        });
-      }
-      if (items is Map) {
-        setState(() {
-          brands = [];
-        });
-      }
-      if (customers is Map) {
-        setState(() {
-          items = [];
-        });
-      }
-      if (stocks is Map) {
-        setState(() {
-          stocks = [];
-        });
-      }
-      if (suppliers is Map) {
-        setState(() {
-          suppliers = [];
-        });
-      }
+      // brands = jsonDecode(response1.body);
+      // data = jsonDecode(response.body);
+      // items = jsonDecode(response2.body);
+      // customers = jsonDecode(response3.body);
+      // stocks = jsonDecode(response4.body);
+      // suppliers = jsonDecode(response5.body);
+
+      // if (data is Map) {
+      //   setState(() {
+      //     data = [];
+      //   });
+      // }
+      // if (brands is Map) {
+      //   setState(() {
+      //     brands = [];
+      //   });
+      // }
+      // if (items is Map) {
+      //   setState(() {
+      //     brands = [];
+      //   });
+      // }
+      // if (customers is Map) {
+      //   setState(() {
+      //     items = [];
+      //   });
+      // }
+      // if (stocks is Map) {
+      //   setState(() {
+      //     stocks = [];
+      //   });
+      // }
+      // if (suppliers is Map) {
+      //   setState(() {
+      //     suppliers = [];
+      //   });
+      // }
       setState(() {});
     } on Exception catch (_) {
-      renderScreen();
+      setState(() {
+        data = null;
+        brands = null;
+        connection = false;
+      });
+      // renderScreen();
     }
   }
 
@@ -896,13 +1027,12 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   }
 
   void _checkConnection() async {
-    try {
-      final result = await InternetAddress.lookup('google.com');
-      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
-        connection = true;
-        _fetchData();
-      }
-    } on SocketException catch (_) {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.mobile ||
+        connectivityResult == ConnectivityResult.wifi) {
+      connection = true;
+      _fetchData();
+    } else {
       setState(() {
         connection = false;
       });

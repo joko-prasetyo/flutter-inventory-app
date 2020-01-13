@@ -160,8 +160,34 @@ class _EditState extends State<Edit> {
         );
       }
     } on Exception catch (_) {
-      Navigator.of(context).pop();
-      renderScreen();
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Informasi'),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text("Sepertinya sedang ada masalah.")
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              FlatButton(
+                child: Text(
+                  'Ok',
+                  style: TextStyle(color: Colors.black, fontSize: 15),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  renderScreen();
+                },
+              )
+            ],
+          );
+        },
+      );
     }
   }
 
@@ -191,6 +217,7 @@ class _EditState extends State<Edit> {
                   onPressed: () {
                     renderScreen();
                     Navigator.of(context).pop();
+                    Navigator.of(context).pop();
                   },
                 )
               ],
@@ -199,8 +226,34 @@ class _EditState extends State<Edit> {
         );
       }
     } on Exception catch (_) {
-      Navigator.of(context).pop();
-      renderScreen();
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Informasi'),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text("Sepertinya ada masalah Error: ${_.toString()}")
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              FlatButton(
+                child: Text(
+                  'Ok',
+                  style: TextStyle(color: Colors.black, fontSize: 15),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  renderScreen();
+                },
+              )
+            ],
+          );
+        },
+      );
     }
   }
 
@@ -271,6 +324,7 @@ class _EditState extends State<Edit> {
                     ),
                   ),
                 ),
+                SizedBox(height: 20),
                 Divider(
                   height: 1.0,
                 ),
@@ -383,6 +437,16 @@ class _EditState extends State<Edit> {
                                   actions: <Widget>[
                                     FlatButton(
                                       child: Text(
+                                        'Tidak',
+                                        style: TextStyle(
+                                            color: Colors.black, fontSize: 15),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                    FlatButton(
+                                      child: Text(
                                         'Ya',
                                         style: TextStyle(
                                             color: Colors.black, fontSize: 15),
@@ -392,16 +456,6 @@ class _EditState extends State<Edit> {
                                         _edit(item);
                                       },
                                     ),
-                                    FlatButton(
-                                      child: Text(
-                                        'Tidak',
-                                        style: TextStyle(
-                                            color: Colors.black, fontSize: 15),
-                                      ),
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                    )
                                   ],
                                 );
                               },
@@ -469,6 +523,16 @@ class _EditState extends State<Edit> {
                                   actions: <Widget>[
                                     FlatButton(
                                       child: Text(
+                                        'Tidak',
+                                        style: TextStyle(
+                                            color: Colors.black, fontSize: 15),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                    FlatButton(
+                                      child: Text(
                                         'Ya',
                                         style: TextStyle(
                                             color: Colors.black, fontSize: 15),
@@ -478,16 +542,6 @@ class _EditState extends State<Edit> {
                                         _delete(item["_id"]);
                                       },
                                     ),
-                                    FlatButton(
-                                      child: Text(
-                                        'Tidak',
-                                        style: TextStyle(
-                                            color: Colors.black, fontSize: 15),
-                                      ),
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                    )
                                   ],
                                 );
                               },
